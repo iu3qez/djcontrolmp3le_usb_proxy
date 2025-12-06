@@ -28,6 +28,11 @@ void app_main(void)
     ESP_LOGI(TAG, "Initializing buffers...");
     buffers_init();
 
+    // Initialize MIDI converter
+    ESP_LOGI(TAG, "Initializing MIDI converter...");
+    extern void midi_converter_init(void);
+    midi_converter_init();
+
     // Initialize CDC console
     ESP_LOGI(TAG, "Initializing CDC console...");
     cdc_console_init();

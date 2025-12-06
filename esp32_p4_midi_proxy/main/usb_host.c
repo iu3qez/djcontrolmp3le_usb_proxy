@@ -7,6 +7,10 @@
 #include "usb_host.h"
 #include "tusb.h"
 #include "esp_log.h"
+#include "buffers.h"
+#include "midi_converter.h"
+#include "config.h"
+#include <string.h>
 
 static const char *TAG = "usb_host";
 
@@ -14,10 +18,39 @@ static const char *TAG = "usb_host";
 #define HERCULES_VID  0x06f8
 #define HERCULES_PID  0xb105
 
+// Hercules init sequence (from Arduino code lines 30-45)
+typedef struct {
+    uint8_t bmRequestType;
+    uint8_t bRequest;
+    uint16_t wValue;
+    uint16_t wIndex;
+    uint16_t wLength;
+} hercules_ctrl_transfer_t;
+
+static const hercules_ctrl_transfer_t hercules_init_sequence[] = {
+    { 0xc0, 0x2c, 0x0000, 0x0000, 2 },  // => 4040
+    { 0xc0, 0x29, 0x0300, 0x0000, 2 },  // => 0c0c
+    { 0xc0, 0x29, 0x0400, 0x0000, 2 },  // => f2f2
+    { 0xc0, 0x29, 0x0500, 0x0000, 2 },  // => eded
+    { 0xc0, 0x29, 0x0600, 0x0000, 2 },  // => 7373
+    { 0xc0, 0x2c, 0x0000, 0x0000, 2 },  // => 4040
+    { 0xc0, 0x2c, 0x0000, 0x0000, 2 },  // => 4040
+    { 0xc0, 0x29, 0x0300, 0x0000, 2 },  // => 0c0c
+    { 0xc0, 0x29, 0x0400, 0x0000, 2 },  // => f2f2
+    { 0xc0, 0x29, 0x0500, 0x0000, 2 },  // => eded
+    { 0xc0, 0x29, 0x0600, 0x0000, 2 },  // => 7373
+    { 0xc0, 0x29, 0x0200, 0x0000, 2 },  // => 0000
+    { 0x02, 0x01, 0x0000, 0x0082, 0 },  // CLEAR_FEATURE
+    { 0x40, 0x27, 0x0000, 0x0000, 0 }   // Final command
+};
+
+#define HERCULES_INIT_SEQUENCE_COUNT (sizeof(hercules_init_sequence) / sizeof(hercules_ctrl_transfer_t))
+
 // Static state
 static bool hercules_mounted = false;
 static uint8_t hercules_dev_addr = 0;
 static uint8_t hercules_instance = 0;
+static uint8_t hercules_init_step = 0;
 
 void usb_host_init(void)
 {
@@ -92,11 +125,23 @@ void tuh_hid_mount_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* desc_re
         hercules_mounted = true;
         hercules_dev_addr = dev_addr;
         hercules_instance = instance;
+        hercules_init_step = 0;
+
         ESP_LOGI(TAG, "Hercules controller detected!");
+        ESP_LOGI(TAG, "Sending init sequence (%d transfers)...", HERCULES_INIT_SEQUENCE_COUNT);
+
+        // TODO: Send init sequence via control transfers
+        // For now, TinyUSB doesn't provide easy control transfer API from host callbacks
+        // This will need to be implemented in Phase 2.2 completion
+        // Workaround: Skip init for now, Hercules might work without it
+
+        ESP_LOGW(TAG, "Init sequence not yet implemented - trying without init");
 
         // Request to receive report
         if (!tuh_hid_receive_report(dev_addr, instance)) {
             ESP_LOGE(TAG, "Failed to request HID report");
+        } else {
+            ESP_LOGI(TAG, "Waiting for Hercules reports...");
         }
     }
 }
@@ -118,17 +163,28 @@ void tuh_hid_umount_cb(uint8_t dev_addr, uint8_t instance)
 void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* report, uint16_t len)
 {
     if (dev_addr == hercules_dev_addr && instance == hercules_instance) {
-        // Process Hercules report (will be implemented in Phase 2)
-        ESP_LOGD(TAG, "Hercules report received, length=%d", len);
+        // Hercules reports are 38 bytes
+        if (len == HERCULES_REPORT_SIZE) {
+            // Copy to current state buffer
+            memcpy(g_hercules_state.current, report, HERCULES_REPORT_SIZE);
 
-        // TODO: Parse report and convert to MIDI
-        // For now, just log first few bytes
-        if (len > 0) {
-            ESP_LOGD(TAG, "Data: %02x %02x %02x %02x...",
-                     report[0],
-                     len > 1 ? report[1] : 0,
-                     len > 2 ? report[2] : 0,
-                     len > 3 ? report[3] : 0);
+            // Check if state has changed
+            if (hercules_state_has_changed()) {
+                // Convert changes to MIDI messages
+                uint8_t midi_count = midi_converter_process(
+                    g_hercules_state.current,
+                    g_hercules_state.previous
+                );
+
+                if (midi_count > 0) {
+                    ESP_LOGD(TAG, "Generated %d MIDI messages", midi_count);
+                }
+
+                // Update previous state
+                hercules_state_update();
+            }
+        } else {
+            ESP_LOGW(TAG, "Unexpected report length: %d (expected %d)", len, HERCULES_REPORT_SIZE);
         }
 
         // Request next report
