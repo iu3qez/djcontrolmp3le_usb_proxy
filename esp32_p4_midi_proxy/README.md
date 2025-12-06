@@ -38,7 +38,17 @@ idf.py -p /dev/ttyUSB0 flash monitor
 
 See [Implementation Tasks](../docs/plans/2025-11-17-implementation-tasks.md) for detailed progress.
 
-**Current Phase**: Phase 1 - Core Infrastructure
+**Current Phase**: Phase 2.5 - FreeRTOS Task Pipeline
+
+**Completed:**
+- ✅ Phase 1 - ESP32-P4 Core Infrastructure
+- ✅ Phase 2.1 - MIDI Types Component
+- ✅ Phase 2.2 - USB Host Hercules Driver
+- ✅ Phase 2.3 - Hercules Protocol Conversion
+- ✅ Phase 2.4 - USB Device MIDI Class
+- ✅ Phase 2.5 - FreeRTOS Task Pipeline
+
+**Architecture:** See [ARCHITECTURE.md](ARCHITECTURE.md) for system design details.
 
 ## Reference
 

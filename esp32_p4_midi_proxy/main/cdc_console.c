@@ -65,6 +65,7 @@ void cdc_console_print_help(void)
     cdc_console_printf("  status     - Show system status\r\n");
     cdc_console_printf("  help       - Show this help message\r\n");
     cdc_console_printf("  reset      - Soft reset the system\r\n");
+    cdc_console_printf("  midi       - Toggle MIDI debug logging\r\n");
     cdc_console_printf("\r\n");
     cdc_console_printf("Future commands (not yet implemented):\r\n");
     cdc_console_printf("  hook list              - List all hooks\r\n");
@@ -144,6 +145,11 @@ static void execute_command(const char *cmd_line)
         cmd_help(argc, argv);
     } else if (strcmp(argv[0], "reset") == 0) {
         cmd_reset(argc, argv);
+    } else if (strcmp(argv[0], "midi") == 0) {
+        // Toggle MIDI debug logging
+        extern void midi_reset_stats(void);
+        midi_reset_stats();
+        cdc_console_printf("MIDI statistics reset\r\n");
     } else {
         cdc_console_printf("Unknown command: %s\r\n", argv[0]);
         cdc_console_printf("Type 'help' for available commands.\r\n");
@@ -169,6 +175,28 @@ static void cmd_status(int argc, char *argv[])
                       is_hercules_mounted() ? "Connected" : "Disconnected");
     cdc_console_printf("  MIDI Device: Active\r\n");
     cdc_console_printf("  CDC Serial: Active\r\n");
+    cdc_console_printf("\r\n");
+
+    // MIDI statistics
+    extern void midi_get_stats(void *stats);
+    typedef struct {
+        uint32_t messages_sent;
+        uint32_t messages_dropped;
+        uint32_t queue_high_water;
+    } midi_stats_t;
+
+    midi_stats_t midi_stats;
+    midi_get_stats(&midi_stats);
+
+    cdc_console_printf("MIDI Pipeline:\r\n");
+    cdc_console_printf("  Messages Sent: %lu\r\n", midi_stats.messages_sent);
+    cdc_console_printf("  Messages Dropped: %lu\r\n", midi_stats.messages_dropped);
+    cdc_console_printf("  Queue High Water: %lu/%d\r\n",
+                      midi_stats.queue_high_water, MIDI_QUEUE_DEPTH);
+
+    extern QueueHandle_t g_midi_queue;
+    UBaseType_t queue_waiting = uxQueueMessagesWaiting(g_midi_queue);
+    cdc_console_printf("  Queue Current: %u/%d\r\n", queue_waiting, MIDI_QUEUE_DEPTH);
     cdc_console_printf("\r\n");
 
     // FreeRTOS task stats

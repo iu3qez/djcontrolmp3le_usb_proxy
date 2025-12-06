@@ -6,6 +6,7 @@ idf_component_register(SRCS "main.c"
                               "cdc_console.c"
                               "hercules_protocol.c"
                               "midi_converter.c"
+                              "midi_task.c"
                     INCLUDE_DIRS "."
                     REQUIRES midi_types
                     PRIV_REQUIRES "espressif__tinyusb")

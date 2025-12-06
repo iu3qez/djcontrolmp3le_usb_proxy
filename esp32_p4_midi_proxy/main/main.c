@@ -59,6 +59,12 @@ void app_main(void)
                 USB_DEVICE_TASK_PRIORITY, NULL);
     ESP_LOGI(TAG, "USB Device task created");
 
+    // Create MIDI TX task
+    extern void midi_tx_task(void *pvParameters);
+    xTaskCreate(midi_tx_task, "midi_tx", MIDI_CONVERTER_TASK_STACK, NULL,
+                MIDI_CONVERTER_TASK_PRIORITY, NULL);
+    ESP_LOGI(TAG, "MIDI TX task created");
+
     ESP_LOGI(TAG, "Initialization complete");
     ESP_LOGI(TAG, "System ready - waiting for USB connections...");
     ESP_LOGI(TAG, "Connect via USB CDC serial and type 'help' for commands");
