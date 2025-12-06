@@ -1,0 +1,42 @@
+{
+	"name": "ESP-IDF QEMU",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"initializeCommand": [
+		"bash",
+		"-lc",
+		"mkdir -p \"${localWorkspaceFolder}/.devcontainer-data/vscode-extensions\" \"${localWorkspaceFolder}/.devcontainer-data/vscode-user\" \"${localWorkspaceFolder}/.devcontainer-data/vscode-machine\" \"${localWorkspaceFolder}/.devcontainer-data/openai-config\" \"${localWorkspaceFolder}/.devcontainer-data/claude-config\""
+	],
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"terminal.integrated.defaultProfile.linux": "bash",
+				"idf.espIdfPath": "/opt/esp/idf",
+				"idf.toolsPath": "/opt/esp",
+				"idf.gitPath": "/usr/bin/git"
+			},
+			"extensions": [
+				"espressif.esp-idf-extension",
+				"espressif.esp-idf-web",
+				"openai.chatgpt",
+				"Anthropic.claude-code",
+				"saoudrizwan.claude-dev"
+			]
+		}
+	},
+	"runArgs": [
+		"--privileged",
+		"--device=/dev/ttyUSB0:/dev/ttyUSB0"
+	],
+	"containerUser": "vscode",
+	"remoteUser": "vscode",
+
+	"mounts": [
+		"source=${localWorkspaceFolder}/.devcontainer-data/vscode-extensions,target=/home/vscode/.vscode-server/extensions,type=bind",
+		"source=${localWorkspaceFolder}/.devcontainer-data/vscode-user,target=/home/vscode/.vscode-server/data/User,type=bind",
+		"source=${localWorkspaceFolder}/.devcontainer-data/vscode-machine,target=/home/vscode/.vscode-server/data/Machine,type=bind",
+		"source=${localWorkspaceFolder}/.devcontainer-data/openai-config,target=/home/vscode/.config/OpenAI,type=bind",
+		"source=${localWorkspaceFolder}/.devcontainer-data/claude-config,target=/home/vscode/.claude,type=bind"
+	]
+}
