@@ -114,13 +114,13 @@ void tud_cdc_rx_cb(uint8_t itf)
     (void) itf;
 
     // Read received data
-    char buf[64];
+    uint8_t buf[64];
     uint32_t count = tud_cdc_read(buf, sizeof(buf));
 
     if (count > 0) {
-        // Echo back for now (will be replaced with command parser)
-        tud_cdc_write(buf, count);
-        tud_cdc_write_flush();
+        // Process through CDC console
+        extern void cdc_console_process(const uint8_t *data, uint16_t len);
+        cdc_console_process(buf, count);
     }
 }
 
@@ -132,6 +132,12 @@ void tud_cdc_line_state_cb(uint8_t itf, bool dtr, bool rts)
 
     if (dtr) {
         ESP_LOGI(TAG, "CDC terminal connected");
+
+        // Send welcome message
+        extern void cdc_console_print_help(void);
+        vTaskDelay(pdMS_TO_TICKS(100)); // Small delay for terminal to be ready
+        cdc_console_print_help();
+        cdc_printf("> ");
     } else {
         ESP_LOGI(TAG, "CDC terminal disconnected");
     }
