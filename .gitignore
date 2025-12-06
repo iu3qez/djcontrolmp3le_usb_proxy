@@ -1,2 +1,16 @@
 .devcontainer-data/
 
+# ESP-IDF build artifacts
+esp32_p4_midi_proxy/build/
+esp32_p4_midi_proxy/sdkconfig
+esp32_p4_midi_proxy/sdkconfig.old
+esp32_c6_tci_client/build/
+esp32_c6_tci_client/sdkconfig
+esp32_c6_tci_client/sdkconfig.old
+
+# Dependencies
+esp32_p4_midi_proxy/managed_components/
+esp32_c6_tci_client/managed_components/
+esp32_p4_midi_proxy/dependencies.lock
+esp32_c6_tci_client/dependencies.lock
+
